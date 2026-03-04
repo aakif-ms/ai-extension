@@ -21,7 +21,7 @@ class SyncState(TypedDict):
     already_synced: bool
     messages: Annotated[list, add_messages]
 
-class AuditSate(TypedDict):
+class AuditState(TypedDict):
     url: str
     page_content: str
     industry: str
