@@ -6,8 +6,8 @@ logger = logging.getLogger(__name__)
 
 async def audit_industry_detector(state, llm):
     prompt = f"""Detect the industry/type of this website.
-                 URL: {state['url']}
-                 Content (first 300 chars): {state['page_content'][:300]}
+                 URL: {state.url}
+                 Content (first 300 chars): {state.page_content[:300]}
  
                  Return JSON: {{"industry": "finance|ecommerce|news|social|other"}}"""
                  
@@ -22,8 +22,8 @@ async def audit_industry_detector(state, llm):
 async def _run_audit_scan(state, llm, focus: str) -> dict:
     prompt = f"""You are a privacy and security auditor. Scan this page focusing on: {focus}
 
-                URL: {state['url']}
-                Content: {state['page_content'][:4000]}
+                URL: {state.url}
+                Content: {state.page_content[:4000]}
 
                 Return JSON:
                 {{
@@ -31,7 +31,7 @@ async def _run_audit_scan(state, llm, focus: str) -> dict:
                     {{"type": "risk type", "description": "what was found", "severity": "low|medium|high|critical"}}
                 ]
                 }}"""
-    response = llm.ainvoke([HumanMessage(content=prompt)])
+    response = await llm.ainvoke([HumanMessage(content=prompt)])
     try:
         data = json.loads(response.content)
         risks = data.get("risks", [])
@@ -58,7 +58,7 @@ async def audit_general(state, llm):
     )
     
 async def audit_risk_assessor(state, llm):
-    risks = state.get("risks", [])
+    risks = state.risks
     severities = [r.get("severity", "low") for r in risks]
 
     level_map = {
@@ -84,5 +84,5 @@ async def audit_risk_assessor(state, llm):
     }
 
 async def audit_hitl(state):
-    logger.warning(f"HITL Interrupt triggered as {state["url"]} -- {state["risk_level"]} risk")
+    logger.warning(f"HITL Interrupt triggered at {state.url} -- {state.risk_level} risk")
     return {}

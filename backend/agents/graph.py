@@ -34,7 +34,7 @@ def build_sync_graph(llm, notion, memory):
     graph.add_edge("classifier", "duplicate_check")
     graph.add_conditional_edges(
         "duplicate_check",
-        lambda s: "skip" if s["already_synced"] else "analyzer"
+        lambda s: "skip" if s.already_synced else "analyzer"
     )
     graph.add_edge("analyzer", "notion_writer")
     graph.add_edge("notion_writer", END)
@@ -43,7 +43,7 @@ def build_sync_graph(llm, notion, memory):
     return graph.compile(checkpointer=memory)
 
 def _route_audit_by_industry(state: AuditState) -> str:
-    industry = state.get("industry", "other")
+    industry = state.industry or "other"
     if industry == "finance":
         return "finance"
     elif industry == "ecommerce":
@@ -75,7 +75,7 @@ def build_audit_graph(llm, memory):
     graph.add_edge("general_auditor", "risk_assessor")
     graph.add_conditional_edges(
         "risk_assessor",
-        lambda s: "hitl_interrupt" if s["risk_level"] in ("high", "critical") else END,
+        lambda s: "hitl_interrupt" if s.risk_level in ("high", "critical") else END,
     )
     graph.add_edge("hitl_interrupt", END)
 
@@ -91,7 +91,7 @@ def build_chat_graph(llm, tavily, memory):
     graph.set_entry_point("intent_router")
     graph.add_conditional_edges(
         "intent_router",
-        lambda s: "searcher" if s["needs_search"] else "responder",
+        lambda s: "searcher" if s.needs_search else "responder",
     )
     graph.add_edge("searcher", "responder")
     graph.add_edge("responder", END)

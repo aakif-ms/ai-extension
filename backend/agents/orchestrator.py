@@ -1,15 +1,19 @@
 import json
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 
 from agents.graph import build_audit_graph, build_chat_graph, build_research_graph, build_sync_graph
-from tools import tavily_tools, notion_tools
+from tools.tavily_tools import TavilyTools
+from tools.notion_tools import NotionTools
+
+load_dotenv()
 
 def create_graph():
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
     memory = MemorySaver()
-    tavily = tavily_tools()
-    notion = notion_tools()
+    tavily = TavilyTools()
+    notion = NotionTools()
     
     return {
         "researcher": build_research_graph(llm, tavily, memory),
@@ -20,7 +24,7 @@ def create_graph():
     
 async def run_research(graphs, url, page_content, query, session_id):
     config = {"configurable": {"thread_id": f"{session_id}-research"}}
-    state = await graphs["research"].ainvoke(
+    state = await graphs["researcher"].ainvoke(
         {"url": url, "page_content": page_content, "query": query, "messages": []},
         config
     )
@@ -61,10 +65,20 @@ async def run_audit(graphs, url, page_content, session_id):
     }
 
 async def run_chat(graphs, url, page_content, message, history, session_id):
+    print("From chat orchestrator.py, run_chat params: ", message)
+    config = {"configurable": {"thread_id": f"{session_id}-chat"}}
+    state = await graphs["chat"].ainvoke(
+        {"url": url, "page_content": page_content, "message": message, "history": history, "messages": []},
+        config
+    )
+    print("From chat orchestrator.py, run_chat, llm response: ", state.get("response", "No response generated"))
+    return state.get("response", "") if isinstance(state, dict) else state.response
+
+async def stream_chat(graphs, url, page_content, message, history, session_id):
     config = {"configurable": {"thread_id": f"{session_id}-chat-stream"}}
     async for chunk in graphs["chat"].astream(
         {"url": url, "page_content": page_content, "message": message, "history": history, "messages": []},
-        config
+        config=config,
     ):
         if "responder" in chunk:
             response = chunk["responder"].get("response", "")
