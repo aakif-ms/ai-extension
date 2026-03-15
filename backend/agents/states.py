@@ -1,42 +1,49 @@
-from typing import TypedDict, Annotated
+from pydantic import BaseModel, Field
+from typing import Annotated
 from langgraph.graph.message import add_messages
+import uuid
 
-class ResearchState(TypedDict):
+class ResearchState(BaseModel):
     url: str
     page_content: str
     query: str
-    research_plan: list[str]
-    search_results: list[dict]
-    synthesis: str
-    message: Annotated[list, add_messages]
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    research_plan: list[str] = []
+    search_results: list[dict] = []
+    synthesis: str = ""
+    messages: Annotated[list, add_messages] = []
 
-class SyncState(TypedDict):
+class SyncState(BaseModel):
     url: str
     page_content: str
     page_title: str
-    tags: list[str]
-    summary: str
-    insights: list[str]
-    notion_page_id: str
-    already_synced: bool
-    messages: Annotated[list, add_messages]
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    page_type: str = ""
+    tags: list[str] = []
+    summary: str = ""
+    insights: list[str] = []
+    notion_page_id: str = ""
+    already_synced: bool = False
+    messages: Annotated[list, add_messages] = []
 
-class AuditState(TypedDict):
+class AuditState(BaseModel):
     url: str
     page_content: str
-    industry: str
-    risk_level: str
-    risks: list[dict]
-    recommendation: str
-    human_review_needed: bool
-    messages: Annotated[list, add_messages]
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    industry: str = ""
+    risk_level: str = "low"
+    risks: list[dict] = []
+    recommendation: str = ""
+    human_review_needed: bool = False
+    messages: Annotated[list, add_messages] = []
 
-class ChatState(TypedDict):
+class ChatState(BaseModel):
     url: str
     page_content: str
     message: str
-    history: list[dict]
-    response: str
-    needs_search: bool
-    search_results: list[dict]
-    messages: Annotated[list, add_messages]
+    history: list[dict] = []
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    response: str = ""
+    needs_search: bool = False
+    search_results: list[dict] = []
+    messages: Annotated[list, add_messages] = []
