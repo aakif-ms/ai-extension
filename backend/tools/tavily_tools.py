@@ -20,7 +20,7 @@ class TavilyTools:
                 raise ImportError("Tavily not found")
         return self._client
 
-    async def search(self, query: str, max_results: int = 5) -> list[dict]:
+    async def search(self, query: str, max_results: int = 3) -> list[dict]:
         if not self.api_key:
             return self._mock_results(query)
         
@@ -28,7 +28,7 @@ class TavilyTools:
             client = self._get_client()
             response = await client.search(
                 query=query,
-                search_depth="advanced",
+                search_depth="basic",
                 max_results=max_results,
                 include_answer=True,
                 include_raw_content=False

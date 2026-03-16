@@ -22,7 +22,7 @@ async def research_planner(state, llm):
 
 async def reseach_searcher(state, tavily):
     results = []
-    for query in state.research_plan[:4]:
+    for query in state.research_plan[:2]:
         try:
             result = await tavily.search(query)
             results.extend(result)
