@@ -1,10 +1,9 @@
 from functools import partial
 from langgraph.graph import StateGraph, END
 
-from agents.states import ResearchState, SyncState, AuditState, ChatState
+from agents.states import ResearchState, SyncState, ChatState
 from agents.nodes.research_node import reseach_searcher, research_planner, research_synthesizer
 from agents.nodes.sync_node import sync_analyzer, sync_classifier, sync_duplicate_check, sync_notion_writer, sync_skip
-from agents.nodes.audit_node import audit_ecommerce, audit_industry_detector, audit_finance, audit_general, audit_hitl, audit_risk_assessor
 from agents.nodes.chat_node import chat_intent_router, chat_responder, chat_searcher
 
 def build_research_graph(llm, tavily, memory):
@@ -39,45 +38,6 @@ def build_sync_graph(llm, notion, memory):
     graph.add_edge("analyzer", "notion_writer")
     graph.add_edge("notion_writer", END)
     graph.add_edge("skip", END)
-
-    return graph.compile(checkpointer=memory)
-
-def _route_audit_by_industry(state: AuditState) -> str:
-    industry = state.industry or "other"
-    if industry == "finance":
-        return "finance"
-    elif industry == "ecommerce":
-        return "ecommerce"
-    return "general"
-
-def build_audit_graph(llm, memory):
-    graph = StateGraph(AuditState)
-
-    graph.add_node("industry_detector", partial(audit_industry_detector, llm=llm))
-    graph.add_node("finance_auditor", partial(audit_finance, llm=llm))
-    graph.add_node("ecommerce_auditor", partial(audit_ecommerce, llm=llm))
-    graph.add_node("general_auditor", partial(audit_general, llm=llm))
-    graph.add_node("risk_assessor", partial(audit_risk_assessor, llm=llm))
-    graph.add_node("hitl_interrupt", audit_hitl)
-
-    graph.set_entry_point("industry_detector")
-    graph.add_conditional_edges(
-        "industry_detector",
-        _route_audit_by_industry,
-        {
-            "finance": "finance_auditor",
-            "ecommerce": "ecommerce_auditor",
-            "general": "general_auditor",
-        }
-    )
-    graph.add_edge("finance_auditor", "risk_assessor")
-    graph.add_edge("ecommerce_auditor", "risk_assessor")
-    graph.add_edge("general_auditor", "risk_assessor")
-    graph.add_conditional_edges(
-        "risk_assessor",
-        lambda s: "hitl_interrupt" if s.risk_level in ("high", "critical") else END,
-    )
-    graph.add_edge("hitl_interrupt", END)
 
     return graph.compile(checkpointer=memory)
 

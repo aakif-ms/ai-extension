@@ -4,8 +4,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from agents.states import SyncState, AuditState, ChatState, ResearchState
-from agents.orchestrator import create_graph, run_audit, run_chat, run_notion_sync, run_research, stream_chat
+from agents.states import SyncState, ChatState, ResearchState
+from agents.orchestrator import create_graph, run_chat, run_notion_sync, run_research, stream_chat
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -62,21 +62,6 @@ async def notion_sync(req: SyncState):
         return {"success": True, "result": result}
     except Exception as e:
         logger.error(f"Sync error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/audit")
-async def privacy_audit(req: AuditState):
-    try:
-        result = await run_audit(
-            graphs=graphs,
-            url=req.url,
-            page_content=req.page_content,
-            session_id=req.session_id,
-        )
-        return {"success": True, "result": result}
-    except Exception as e:
-        logger.error(f"Audit error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

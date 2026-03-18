@@ -26,17 +26,6 @@ class SyncState(BaseModel):
     already_synced: bool = False
     messages: Annotated[list, add_messages] = []
 
-class AuditState(BaseModel):
-    url: str
-    page_content: str
-    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    industry: str = ""
-    risk_level: str = "low"
-    risks: list[dict] = []
-    recommendation: str = ""
-    human_review_needed: bool = False
-    messages: Annotated[list, add_messages] = []
-
 class ChatState(BaseModel):
     url: str
     page_content: str

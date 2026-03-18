@@ -49,20 +49,6 @@ async function handleMessage(message, sender) {
       return await callAPI("/sync", payload);
     }
 
-    case "RUN_AUDIT": {
-      const result = await callAPI("/audit", payload);
-      if (result?.result?.risk_level === "high" || result?.result?.risk_level === "critical") {
-        chrome.notifications.create({
-          type: "basic",
-          iconUrl: "icons/icon48.png",
-          title: "⚠️ Sentinel Security Alert",
-          message: result.result.recommendation?.slice(0, 100) || "High privacy risk detected on this page.",
-          priority: 2,
-        });
-      }
-      return result;
-    }
-
     case "RUN_CHAT": {
       console.log("[Sentinel BG] RUN_CHAT payload", payload);
       const res = await callAPI("/chat", payload);
@@ -88,18 +74,3 @@ async function callAPI(endpoint, payload) {
     return { success: false, error: error.message };
   }
 }
-
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status !== "complete" || !tab.url?.startsWith("http")) return;
-
-  const settings = await chrome.storage.sync.get("autoAudit");
-  if (!settings.autoAudit) return;
-
-  const results = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: () => document.body.innerText.slice(0, 5000),
-  });
-
-  const content = results[0]?.result || "";
-  await callAPI("/audit", { url: tab.url, page_content: content, session_id: `tab-${tabId}` });
-});

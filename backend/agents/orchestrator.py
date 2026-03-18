@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 
-from agents.graph import build_audit_graph, build_chat_graph, build_research_graph, build_sync_graph
+from agents.graph import build_chat_graph, build_research_graph, build_sync_graph
 from tools.tavily_tools import TavilyTools
 from tools.notion_tools import NotionTools
 
@@ -18,7 +18,6 @@ def create_graph():
     return {
         "researcher": build_research_graph(llm, tavily, memory),
         "sync": build_sync_graph(llm, notion, memory),
-        "audit": build_audit_graph(llm, memory),
         "chat": build_chat_graph(llm, tavily, memory)
     }
     
@@ -48,20 +47,6 @@ async def run_notion_sync(graphs, url, page_content, page_title, session_id):
         "summary":        state.get("summary"),
         "tags":           state.get("tags", []),
         "insights":       state.get("insights", []),
-    }
-    
-async def run_audit(graphs, url, page_content, session_id):
-    config = {"configurable": {"thread_id": f"{session_id}-audit"}}
-    state = await graphs["audit"].ainvoke(
-        {"url": url, "page_content": page_content, "messages": []},
-        config
-    )
-    return {
-        "risk_level":          state.get("risk_level", "low"),
-        "industry":            state.get("industry", "other"),
-        "risks":               state.get("risks", []),
-        "recommendation":      state.get("recommendation", ""),
-        "human_review_needed": state.get("human_review_needed", False),
     }
 
 async def run_chat(graphs, url, page_content, message, history, session_id):

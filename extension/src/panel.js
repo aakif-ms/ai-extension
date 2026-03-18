@@ -33,9 +33,6 @@ document.getElementById("app").innerHTML = `
     <button class="tab-btn" data-tab="sync">
       <span class="tab-icon">📚</span>Notion
     </button>
-    <button class="tab-btn" data-tab="audit">
-      <span class="tab-icon">🔒</span>Audit
-    </button>
   </div>
 
   <div class="panels">
@@ -77,17 +74,6 @@ document.getElementById("app").innerHTML = `
       <div id="sync-result" style="display:none"></div>
     </div>
 
-    <!-- AUDIT -->
-    <div class="panel" id="panel-audit">
-      <div class="card">
-        <div class="card-title">🔒 Privacy & Security Audit</div>
-        <p style="color:var(--text2);font-size:12px;line-height:1.5;margin-bottom:12px">
-          Sentinel's Guardian Node will scan this page for privacy risks, ToS red flags, dark patterns, and data-sharing clauses.
-        </p>
-        <button class="btn btn-green" id="audit-btn">Run Security Audit</button>
-      </div>
-      <div id="audit-result" style="display:none"></div>
-    </div>
   </div>
 `;
 
@@ -141,8 +127,6 @@ function setupEventListeners() {
   document.getElementById("research-btn").addEventListener("click", runResearch);
 
   document.getElementById("sync-btn").addEventListener("click", runSync);
-
-  document.getElementById("audit-btn").addEventListener("click", runAudit);
 }
 
 async function sendChat() {
@@ -317,63 +301,6 @@ async function runSync() {
 
   btn.disabled = false;
   btn.textContent = "Sync to Notion";
-}
-
-async function runAudit() {
-  const btn = document.getElementById("audit-btn");
-  const resultEl = document.getElementById("audit-result");
-
-  btn.disabled = true;
-  btn.textContent = "Auditing...";
-  resultEl.style.display = "none";
-
-  try {
-    const res = await chrome.runtime.sendMessage({
-      type: "RUN_AUDIT",
-      payload: {
-        url: state.pageInfo.url,
-        page_content: state.pageInfo.content,
-        session_id: state.sessionId,
-      },
-    });
-
-    const data = res?.result;
-    resultEl.style.display = "block";
-
-    const riskClass = data?.risk_level || "low";
-    const riskEmoji = { low: "✅", medium: "⚠️", high: "🚨", critical: "🔴" }[riskClass] || "✅";
-
-    const risksHtml = (data?.risks || []).map(r => `
-      <div class="risk-item ${r.severity}">
-        <div class="risk-type">${r.type?.replace(/_/g, " ")}</div>
-        <div class="risk-desc">${escapeHtml(r.description || "")}</div>
-      </div>
-    `).join("");
-
-    const hitlBanner = data?.human_review_needed ? `
-      <div class="card" style="border-color:var(--danger);background:rgba(244,63,94,0.08)">
-        <div style="color:var(--danger);font-weight:800;font-size:13px">🚨 HUMAN REVIEW REQUIRED</div>
-        <div style="color:var(--text2);font-size:12px;margin-top:4px">Sentinel has paused and flagged this page for review. Proceed with caution.</div>
-      </div>
-    ` : "";
-
-    resultEl.innerHTML = `
-      ${hitlBanner}
-      <div class="card">
-        <div class="card-title">Risk Level</div>
-        <div class="risk-badge risk-${riskClass}">${riskEmoji} ${riskClass.toUpperCase()}</div>
-        <div style="color:var(--text2);font-size:11px;margin-top:6px">Industry: ${data?.industry || "unknown"}</div>
-      </div>
-      ${risksHtml ? `<div class="card"><div class="card-title">⚠️ Detected Risks</div><div style="display:flex;flex-direction:column;gap:6px">${risksHtml}</div></div>` : ""}
-      ${data?.recommendation ? `<div class="card"><div class="card-title">💬 Recommendation</div><p style="font-size:12px;line-height:1.6;color:var(--text)">${escapeHtml(data.recommendation)}</p></div>` : ""}
-    `;
-  } catch (e) {
-    resultEl.style.display = "block";
-    resultEl.innerHTML = `<div class="card" style="color:var(--danger)">⚠️ Audit failed. Check backend connection.</div>`;
-  }
-
-  btn.disabled = false;
-  btn.textContent = "Run Security Audit";
 }
 
 function escapeHtml(str) {
