@@ -1,5 +1,37 @@
 import json
+import re
 from langchain_core.messages import HumanMessage
+
+
+def _parse_llm_json(content) -> dict:
+    text = str(content or "")
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+
+    match = re.search(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", text, re.IGNORECASE)
+    if match:
+        try:
+            parsed = json.loads(match.group(1))
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        try:
+            parsed = json.loads(text[start:end + 1])
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+
+    return {}
 
 async def sync_classifier(state, llm):
     prompt = f"""Classify this webpage type. URL: {state.url}
@@ -9,11 +41,8 @@ async def sync_classifier(state, llm):
                  Return JSON: {{"page_type": "article|product|documentation|news|other"}}"""
     
     response = await llm.ainvoke([HumanMessage(content=prompt)])
-    try:
-        data = json.loads(response.content)
-        page_type = data.get("page_type", "other")
-    except Exception:
-        page_type = "other"
+    data = _parse_llm_json(response.content)
+    page_type = str(data.get("page_type", "other"))
     return {"page_type": page_type}
 
 async def sync_duplicate_check(state, notion):
@@ -35,11 +64,16 @@ async def sync_analyzer(state, llm):
                  }}"""
     
     response = await llm.ainvoke([HumanMessage(content=prompt)])
-    try:
-        data = json.loads(response.content)
-    except Exception:
+    print("This is the output generated for notion sync: ", response)
+    data = _parse_llm_json(response.content)
+    if not data:
         data = {"summary": state.page_content[:200], "tags": [], "insights": []}
-    return data
+
+    return {
+        "summary": str(data.get("summary", state.page_content[:200])),
+        "tags": [str(tag) for tag in data.get("tags", [])][:5],
+        "insights": [str(item) for item in data.get("insights", [])][:10],
+    }
 
 async def sync_notion_writer(state, notion):
     page_id = await notion.create_page(
