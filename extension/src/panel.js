@@ -12,36 +12,40 @@ const state = {
 document.getElementById("app").innerHTML = `
   <div class="header">
     <div class="logo">
-      <div class="logo-icon">🛡️</div>
+      <div class="logo-icon">⬡</div>
       <span class="logo-text">SENTINEL</span>
     </div>
-    <div id="status-dot" class="status-dot" title="Backend Status"></div>
+    <div class="status-block">
+      <div id="status-dot" class="status-dot" title="Backend Status"></div>
+      <span class="status-label" id="status-label">OFFLINE</span>
+    </div>
   </div>
 
   <div class="page-bar">
-    <span class="site-icon">🌐</span>
+    <span class="site-icon">↗</span>
     <span class="page-title" id="page-title">Loading page...</span>
   </div>
 
   <div class="tabs">
     <button class="tab-btn active" data-tab="chat">
-      <span class="tab-icon">💬</span>Chat
+      <span class="tab-icon">✦</span>CHAT
     </button>
     <button class="tab-btn" data-tab="research">
-      <span class="tab-icon">🔍</span>Research
+      <span class="tab-icon">◎</span>RESEARCH
     </button>
     <button class="tab-btn" data-tab="sync">
-      <span class="tab-icon">📚</span>Notion
+      <span class="tab-icon">□</span>NOTION
     </button>
   </div>
 
   <div class="panels">
+
     <!-- CHAT -->
     <div class="panel active" id="panel-chat">
       <div class="chat-messages" id="chat-messages">
         <div class="msg msg-agent">
           <div class="msg-label">SENTINEL</div>
-          <div class="msg-bubble">Hello! I'm Sentinel. I can answer questions about this page, run deep research, or help you understand any content. What would you like to know?</div>
+          <div class="msg-bubble">Hello — I'm Sentinel. Ask me anything about this page, run deep research, or sync it to Notion.</div>
         </div>
       </div>
       <div class="chat-input-row">
@@ -53,23 +57,23 @@ document.getElementById("app").innerHTML = `
     <!-- RESEARCH -->
     <div class="panel" id="panel-research">
       <div class="card">
-        <div class="card-title">🔍 Deep Research</div>
-        <textarea class="input" id="research-query" rows="3" placeholder="What do you want to research about this topic? Sentinel will create a plan and search the live web..."></textarea>
-        <div style="height:8px"></div>
-        <button class="btn btn-primary" id="research-btn">Run Deep Research</button>
+        <div class="card-title">◎ DEEP RESEARCH</div>
+        <textarea class="input" id="research-query" rows="3" placeholder="What do you want to research? Sentinel will plan, search the live web, and synthesize findings..."></textarea>
+        <div style="height:10px"></div>
+        <button class="btn btn-primary" id="research-btn">RUN RESEARCH →</button>
       </div>
-      <div id="research-log" style="display:none" class="agent-log">Initializing research agent...</div>
+      <div id="research-log" style="display:none" class="agent-log">INITIALIZING AGENT...</div>
       <div id="research-result" style="display:none"></div>
     </div>
 
     <!-- NOTION SYNC -->
     <div class="panel" id="panel-sync">
       <div class="card">
-        <div class="card-title">📚 Intelligent Notion Sync</div>
-        <p style="color:var(--text2);font-size:12px;line-height:1.5;margin-bottom:12px">
-          Sentinel will analyze this page, generate tags and insights, and sync it to your Notion database — automatically categorized and structured.
+        <div class="card-title">□ NOTION SYNC</div>
+        <p style="color:#666;font-size:12px;font-family:var(--font-mono);line-height:1.6;margin-bottom:14px">
+          Sentinel analyzes this page, extracts insights and tags, then writes it to your Notion database — structured and categorized.
         </p>
-        <button class="btn btn-purple" id="sync-btn">Sync to Notion</button>
+        <button class="btn btn-purple" id="sync-btn">SYNC TO NOTION →</button>
       </div>
       <div id="sync-result" style="display:none"></div>
     </div>
@@ -104,8 +108,14 @@ async function checkBackendHealth() {
   }
 
   const dot = document.getElementById("status-dot");
-  dot.className = `status-dot ${state.backendOnline ? "online" : ""}`;
-  dot.title = state.backendOnline ? "Backend online" : "Backend offline — start the server";
+  const label = document.getElementById("status-label");
+  if (state.backendOnline) {
+    dot.className = "status-dot online";
+    label.textContent = "ONLINE";
+  } else {
+    dot.className = "status-dot";
+    label.textContent = "OFFLINE";
+  }
 }
 
 function setupEventListeners() {
@@ -125,7 +135,6 @@ function setupEventListeners() {
   });
 
   document.getElementById("research-btn").addEventListener("click", runResearch);
-
   document.getElementById("sync-btn").addEventListener("click", runSync);
 }
 
@@ -134,6 +143,7 @@ async function sendChat() {
   const message = input.value.trim();
   if (!message || state.isLoading) return;
 
+  state.isLoading = true;
   input.value = "";
   appendMessage("user", message);
   state.chatHistory.push({ role: "user", content: message });
@@ -158,8 +168,10 @@ async function sendChat() {
     state.chatHistory.push({ role: "assistant", content: response });
   } catch (e) {
     removeElement(loadingId);
-    appendMessage("agent", "⚠️ Error connecting to Sentinel backend. Is the server running?");
+    appendMessage("agent", "⚠ Error connecting to Sentinel backend. Is the server running?");
   }
+
+  state.isLoading = false;
 }
 
 function appendMessage(role, content) {
@@ -181,7 +193,7 @@ function appendLoading() {
   const id = `loading-${Date.now()}`;
   container.innerHTML += `
     <div class="loading" id="${id}">
-      <div class="spinner"></div> Sentinel is thinking...
+      <div class="spinner"></div>THINKING...
     </div>
   `;
   container.scrollTop = container.scrollHeight;
@@ -197,23 +209,21 @@ async function runResearch() {
   const result = document.getElementById("research-result");
 
   btn.disabled = true;
-  btn.textContent = "Researching...";
+  btn.textContent = "RESEARCHING...";
   log.style.display = "block";
   result.style.display = "none";
 
   const steps = [
-    "[ PLANNER ] Generating research plan...",
-    "[ SEARCHER ] Querying Tavily AI...",
-    "[ SEARCHER ] Fetching additional sources...",
-    "[ SYNTHESIZER ] Synthesizing findings...",
+    "[ PLANNER ] → GENERATING RESEARCH PLAN",
+    "[ SEARCHER ] → QUERYING TAVILY AI",
+    "[ SEARCHER ] → FETCHING SOURCES",
+    "[ SYNTHESIZER ] → BUILDING REPORT",
   ];
 
   let stepIndex = 0;
   const logInterval = setInterval(() => {
-    if (stepIndex < steps.length) {
-      log.textContent = steps[stepIndex++];
-    }
-  }, 800);
+    if (stepIndex < steps.length) log.textContent = steps[stepIndex++];
+  }, 900);
 
   try {
     const res = await chrome.runtime.sendMessage({
@@ -233,23 +243,27 @@ async function runResearch() {
     if (!data) throw new Error("No result");
 
     const sources = (data.sources || []).filter(Boolean).map(url =>
-      `<a class="source-link" href="${url}" target="_blank">${url.slice(0, 50)}...</a>`
+      `<a class="source-link" href="${url}" target="_blank">↗ ${url.slice(0, 48)}...</a>`
     ).join("<br>");
 
     result.style.display = "block";
     result.innerHTML = `
       <div class="research-result">${escapeHtml(data.synthesis || "No synthesis available.")}</div>
-      ${sources ? `<div class="card"><div class="card-title">📎 Sources</div>${sources}</div>` : ""}
+      ${sources ? `
+        <div class="card" style="margin-top:0">
+          <div class="card-title" style="font-size:14px">SOURCES</div>
+          ${sources}
+        </div>` : ""}
     `;
   } catch (e) {
     clearInterval(logInterval);
     log.style.display = "none";
     result.style.display = "block";
-    result.innerHTML = `<div class="research-result" style="color:var(--danger)">⚠️ Research failed. Check backend connection.</div>`;
+    result.innerHTML = `<div class="research-result" style="border-left-color:#cc0000;color:#cc0000">⚠ RESEARCH FAILED — CHECK BACKEND</div>`;
   }
 
   btn.disabled = false;
-  btn.textContent = "Run Deep Research";
+  btn.textContent = "RUN RESEARCH →";
 }
 
 async function runSync() {
@@ -257,7 +271,7 @@ async function runSync() {
   const resultEl = document.getElementById("sync-result");
 
   btn.disabled = true;
-  btn.textContent = "Syncing...";
+  btn.textContent = "SYNCING...";
   resultEl.style.display = "none";
 
   try {
@@ -276,31 +290,31 @@ async function runSync() {
 
     if (data?.status === "already_synced") {
       resultEl.innerHTML = `
-        <div class="card" style="border-color:var(--warn)">
-          <div style="color:var(--warn);font-weight:700">⚠️ Already Synced</div>
-          <div style="color:var(--text2);font-size:12px;margin-top:6px">This page is already in your Notion database.</div>
+        <div class="card" style="border-left:5px solid #f59e0b;box-shadow:4px 4px 0 var(--black)">
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:0.08em;color:#b45309;margin-bottom:6px">⚠ ALREADY SYNCED</div>
+          <div style="color:#666;font-size:12px;font-family:var(--font-mono)">This page exists in your Notion database.</div>
         </div>
       `;
     } else if (data?.status === "synced") {
       const tags = (data.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
       const insights = (data.insights || []).map(i => `<div class="insight-item">${escapeHtml(i)}</div>`).join("");
       resultEl.innerHTML = `
-        <div class="card" style="border-color:var(--accent3)">
-          <div style="color:var(--accent3);font-weight:700;margin-bottom:8px">✅ Synced to Notion</div>
-          <div class="card-title">📝 Summary</div>
-          <p style="font-size:12px;color:var(--text);line-height:1.5;margin-bottom:10px">${escapeHtml(data.summary || "")}</p>
-          ${tags ? `<div class="card-title">🏷️ Tags</div><div class="tags-row" style="margin-bottom:10px">${tags}</div>` : ""}
-          ${insights ? `<div class="card-title">💡 Insights</div><div style="display:flex;flex-direction:column;gap:5px">${insights}</div>` : ""}
+        <div class="card" style="border-left:5px solid #000;box-shadow:4px 4px 0 var(--black)">
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:0.08em;margin-bottom:10px">✓ SYNCED TO NOTION</div>
+          <div class="section-label" style="margin-bottom:8px">SUMMARY</div>
+          <p style="font-size:12px;line-height:1.55;margin-bottom:12px">${escapeHtml(data.summary || "")}</p>
+          ${tags ? `<div class="section-label" style="margin-bottom:8px">TAGS</div><div class="tags-row" style="margin-bottom:12px">${tags}</div>` : ""}
+          ${insights ? `<div class="section-label" style="margin-bottom:8px">INSIGHTS</div><div style="display:flex;flex-direction:column;gap:5px">${insights}</div>` : ""}
         </div>
       `;
     }
   } catch (e) {
     resultEl.style.display = "block";
-    resultEl.innerHTML = `<div class="card" style="color:var(--danger)">⚠️ Sync failed. Check backend and Notion credentials.</div>`;
+    resultEl.innerHTML = `<div class="card" style="color:#cc0000;font-family:var(--font-mono);font-size:11px">⚠ SYNC FAILED — CHECK BACKEND + NOTION CREDENTIALS</div>`;
   }
 
   btn.disabled = false;
-  btn.textContent = "Sync to Notion";
+  btn.textContent = "SYNC TO NOTION →";
 }
 
 function escapeHtml(str) {
