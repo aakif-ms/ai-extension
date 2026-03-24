@@ -3,7 +3,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({
       url: window.location.href,
       title: document.title,
-      content: document.body.innerText.slice(0, 12000),
+      content: document.body?.innerText || "",
       metaDescription: document.querySelector('meta[name="description"]')?.content || "",
     });
   }

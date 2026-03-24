@@ -35,7 +35,7 @@ async function handleMessage(message, sender) {
         func: () => ({
           url: window.location.href,
           title: document.title,
-          content: document.body.innerText.slice(0, 10000),
+          content: document.body?.innerText || "",
         }),
       });
       return results[0]?.result || {};
