@@ -41,12 +41,12 @@ def build_sync_graph(llm, notion, memory):
 
     return graph.compile(checkpointer=memory)
 
-def build_chat_graph(llm, tavily, memory):
+def build_chat_graph(llm, tavily, rag, memory):
     graph = StateGraph(ChatState)
     
     graph.add_node("intent_router", partial(chat_intent_router, llm=llm))
     graph.add_node("searcher", partial(chat_searcher, tavily=tavily))
-    graph.add_node("responder", partial(chat_responder, llm=llm))
+    graph.add_node("responder", partial(chat_responder, llm=llm, rag=rag))
 
     graph.set_entry_point("intent_router")
     graph.add_conditional_edges(

@@ -6,6 +6,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from agents.graph import build_chat_graph, build_research_graph, build_sync_graph
 from tools.tavily_tools import TavilyTools
 from tools.notion_tools import NotionTools
+from tools.page_rag import SessionPageRAG
 
 load_dotenv()
 
@@ -14,11 +15,12 @@ def create_graph():
     memory = MemorySaver()
     tavily = TavilyTools()
     notion = NotionTools()
+    rag = SessionPageRAG()
     
     return {
         "researcher": build_research_graph(llm, tavily, memory),
         "sync": build_sync_graph(llm, notion, memory),
-        "chat": build_chat_graph(llm, tavily, memory)
+        "chat": build_chat_graph(llm, tavily, rag, memory)
     }
     
 async def run_research(graphs, url, page_content, query, session_id):
@@ -53,7 +55,14 @@ async def run_chat(graphs, url, page_content, message, history, session_id):
     print("From chat orchestrator.py, run_chat params: ", message)
     config = {"configurable": {"thread_id": f"{session_id}-chat"}}
     state = await graphs["chat"].ainvoke(
-        {"url": url, "page_content": page_content, "message": message, "history": history, "messages": []},
+        {
+            "url": url,
+            "page_content": page_content,
+            "message": message,
+            "history": history,
+            "session_id": session_id,
+            "messages": [],
+        },
         config
     )
     print("From chat orchestrator.py, run_chat, llm response: ", state.get("response", "No response generated"))
@@ -62,7 +71,14 @@ async def run_chat(graphs, url, page_content, message, history, session_id):
 async def stream_chat(graphs, url, page_content, message, history, session_id):
     config = {"configurable": {"thread_id": f"{session_id}-chat-stream"}}
     async for chunk in graphs["chat"].astream(
-        {"url": url, "page_content": page_content, "message": message, "history": history, "messages": []},
+        {
+            "url": url,
+            "page_content": page_content,
+            "message": message,
+            "history": history,
+            "session_id": session_id,
+            "messages": [],
+        },
         config=config,
     ):
         if "responder" in chunk:

@@ -20,13 +20,22 @@ async def chat_searcher(state, tavily):
     results = await tavily.search(state.message)
     return {"search_results": results}
 
-async def chat_responder(state, llm):
+async def chat_responder(state, llm, rag):
     search_ctx = ""
     if state.search_results:
         search_ctx = "\n\nWeb Search Results:\n" + "\n".join([
             f"- {r.get('title')}: {r.get('content', '')[:200]}"
             for r in state.search_results[:4]
         ])
+
+    rag_status = rag.ensure_page_index(
+        session_id=state.session_id,
+        url=state.url,
+        page_content=state.page_content,
+    )
+    retrieved_chunks = rag.query_page(session_id=state.session_id, query=state.message, top_k=6)
+    page_ctx = "\n\n---\n\n".join(retrieved_chunks) if retrieved_chunks else state.page_content[:2000]
+    retrieval_note = f"RAG status: {rag_status.get('status', 'unknown')}"
 
     history_text = "\n".join([
         f"{m['role'].capitalize()}: {m['content']}"
@@ -35,8 +44,9 @@ async def chat_responder(state, llm):
 
     system = f"""You are Sentinel, an intelligent browser assistant. You have access to the current webpage.
                 Current Page: {state.url}
-                Page Content (first 2000 chars):
-                {state.page_content[:2000]}
+                Relevant Page Chunks (retrieved by RAG):
+                {page_ctx}
+                {retrieval_note}
                 {search_ctx}"""
     
     messages = [SystemMessage(content=system)]
