@@ -151,6 +151,8 @@ async function sendChat() {
   const loadingId = appendLoading();
 
   try {
+    // Refresh page info before each request to get the current URL
+    await loadPageInfo();
     const result = await chrome.runtime.sendMessage({
       type: "RUN_CHAT",
       payload: {
@@ -226,6 +228,8 @@ async function runResearch() {
   }, 900);
 
   try {
+    // Refresh page info before each request to get the current URL
+    await loadPageInfo();
     const res = await chrome.runtime.sendMessage({
       type: "RUN_RESEARCH",
       payload: {
@@ -273,7 +277,9 @@ async function runSync() {
   btn.disabled = true;
   btn.textContent = "SYNCING...";
   resultEl.style.display = "none";
-
+// Refresh page info before each request to get the current URL
+    await loadPageInfo();
+    
   try {
     const res = await chrome.runtime.sendMessage({
       type: "RUN_SYNC",

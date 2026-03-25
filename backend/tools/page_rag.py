@@ -66,10 +66,10 @@ class SessionPageRAG:
     def ensure_page_index(self, session_id: str, url: str, page_content: str) -> dict:
         content = _normalize_text(page_content)
         content_hash = self._content_hash(content)
-
+        print("Current page URL: ", url)
         existing = self._session_state.get(session_id)
-        if existing and existing.url == url and existing.content_hash == content_hash:
-            return {"status": "reused", "chunks": None}
+        if existing and existing.url == url:
+            return {"status": "reused", "url": url, "chunks": None}
 
         if existing:
             self._delete_collection_safely(existing.collection_name)
@@ -92,7 +92,7 @@ class SessionPageRAG:
             content_hash=content_hash,
             collection_name=collection_name,
         )
-        return {"status": "rebuilt", "chunks": len(chunks)}
+        return {"status": "rebuilt", "url": url, "chunks": len(chunks)}
 
     def query_page(self, session_id: str, query: str, top_k: int = 6) -> list[str]:
         existing = self._session_state.get(session_id)
