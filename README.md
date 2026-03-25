@@ -18,6 +18,9 @@ It reads the active page content in your browser, routes requests through specia
 - Notion integration for structured storage (summary, tags, insights)
 - Safety/fallback behavior when external keys are missing
 
+## Demo Video
+https://github.com/user-attachments/assets/3f17415c-9209-413c-80bc-7a4092a9f9c2
+
 ## Architecture
 
 ### Extension layer (Chrome, Manifest V3)
@@ -135,101 +138,6 @@ The extension is configured to call the backend at:
 
 - `http://localhost:8000`
 
-## API Endpoints
-
-### POST /chat
-
-Request body:
-
-```json
-{
-  "url": "https://example.com",
-  "page_content": "Visible text from current page...",
-  "message": "Summarize the key argument",
-  "history": [{"role": "user", "content": "previous message"}],
-  "session_id": "session-uuid"
-}
-```
-
-Response:
-
-```json
-{
-  "success": true,
-  "result": "Assistant response"
-}
-```
-
-### POST /chat/stream
-
-- Server-sent events endpoint for streamed chat chunks.
-
-### POST /research
-
-Request body:
-
-```json
-{
-  "url": "https://example.com",
-  "page_content": "Visible text from current page...",
-  "query": "Compare this topic with current market trends",
-  "session_id": "session-uuid"
-}
-```
-
-Response:
-
-```json
-{
-  "success": true,
-  "result": {
-    "synthesis": "Structured research output...",
-    "sources": ["https://source-1.com", "https://source-2.com"],
-    "plan": ["query 1", "query 2"]
-  }
-}
-```
-
-### POST /sync
-
-Request body:
-
-```json
-{
-  "url": "https://example.com",
-  "page_content": "Visible text from current page...",
-  "page_title": "Page title",
-  "session_id": "session-uuid"
-}
-```
-
-Response (synced):
-
-```json
-{
-  "success": true,
-  "result": {
-    "status": "synced",
-    "notion_page_id": "...",
-    "summary": "...",
-    "tags": ["..."],
-    "insights": ["..."]
-  }
-}
-```
-
-Response (already synced):
-
-```json
-{
-  "success": true,
-  "result": {
-    "status": "already_synced",
-    "message": "This page was already saved to Notion."
-  }
-}
-```
-
 ## Workflow Summary
 
 - Chat pipeline:
@@ -249,20 +157,3 @@ Response (already synced):
   - Analyzer extracts summary/tags/insights
   - Writer creates structured Notion page
 
-## Current Limitations
-
-- API base URL is hardcoded in extension scripts (`http://localhost:8000`)
-- No authentication layer between extension and backend
-- Streaming chat endpoint exists in backend but extension currently uses non-stream chat route
-
-## Future Improvements
-
-- Configurable backend URL via extension settings
-- Auth + rate limiting
-- Better observability (traces, per-node latency, retries)
-- First-class streaming UI in chat panel
-- Expanded test coverage for graph nodes and tools
-
-## License
-
-Add your preferred license here.
